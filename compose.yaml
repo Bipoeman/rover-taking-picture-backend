@@ -1,0 +1,15 @@
+services:
+  nodered:
+    build: ./nodered
+    ports:
+      - 1880:1880
+    volumes:
+      - ./nodered/data:/data
+    container_name: nodered
+  mosquitto:
+    build: ./mosquitto
+    ports:
+      - 1883:1883
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    container_name: mosquitto

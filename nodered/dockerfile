@@ -1,0 +1,4 @@
+FROM nodered/node-red
+# WORKDIR /
+EXPOSE 1880
+# VOLUME /data

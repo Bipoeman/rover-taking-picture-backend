@@ -1,0 +1,5 @@
+FROM eclipse-mosquitto:latest
+EXPOSE 1883
+VOLUME /mosquitto/data
+VOLUME /mosquitto/log
+# COPY
