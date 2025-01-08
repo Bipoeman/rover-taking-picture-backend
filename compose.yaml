@@ -6,6 +6,8 @@ services:
     volumes:
       - ./nodered/data:/data
     container_name: nodered
+    networks:
+      - service_network
   mosquitto:
     build: ./mosquitto
     ports:
@@ -13,6 +15,8 @@ services:
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     container_name: mosquitto
+    networks:
+      - service_network
   nodejs:
     build: ./nodejs
     ports:
@@ -20,3 +24,10 @@ services:
     volumes:
       - ./nodejs/uploads/:/home/node/uploads/
     container_name: nodejs
+    networks:
+      - service_network
+
+networks:
+  service_network:
+    # Specify driver options
+    driver: bridge

@@ -5,6 +5,28 @@ import * as path from 'path';
 import cors from "cors";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import mqtt from "mqtt";
+
+const mqttClient = mqtt.connect("mqtt://mosquitto");
+
+mqttClient.on("connect", () => {
+  console.log("MQTT Connected")
+  mqttClient.subscribe("presence", (err) => {
+    if (!err) {
+      mqttClient.publish("presence", "Hello mqtt");
+    }
+  });
+});
+
+mqttClient.on("message", (topic, message) => {
+  // message is Buffer
+  console.log(message.toString());
+});
+mqttClient.on("error", () => {
+  // message is Buffer
+  console.log("Error");
+});
+
 
 export var restApp = express();
 restApp.use(cors());
@@ -21,7 +43,7 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     // Original filename approach (commented for reference):
     // cb(null, `output.${file.originalname.split(".").pop()}`);
-    
+
     // Timestamp-based filename
     const timestamp = Date.now();
     cb(null, `${timestamp}.${file.originalname.split(".").pop()}`);
@@ -62,10 +84,14 @@ restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
   }));
 
   console.log(`filename : ${fileName}`);
+  var transmit =
+    { "url": "http://localhost:3002/photos/latest", "team": req.body.team }
+
   res.status(200).json({
     message: "Files uploaded successfully",
     files: fileDetails
   });
+  mqttClient.publish("/app/reportState", JSON.stringify(transmit))
 });
 
 // Endpoint to get the latest uploaded image
