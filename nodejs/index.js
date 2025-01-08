@@ -1,11 +1,16 @@
-import express from 'express'
-import multer from 'multer'
+import express from 'express';
+import multer from 'multer';
 import * as fs from 'fs';
 import * as path from 'path';
 import cors from "cors";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 export var restApp = express();
-restApp.use(cors())
+restApp.use(cors());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Set up storage engine for multer
 const storage = multer.diskStorage({
@@ -14,7 +19,12 @@ const storage = multer.diskStorage({
     cb(null, "./uploads/"); // Specify the folder where files will be stored
   },
   filename: function (req, file, cb) {
-    cb(null, `output.${file.originalname.split(".").pop()}`); // Save the file with a timestamp to avoid name collisions
+    // Original filename approach (commented for reference):
+    // cb(null, `output.${file.originalname.split(".").pop()}`);
+    
+    // Timestamp-based filename
+    const timestamp = Date.now();
+    cb(null, `${timestamp}.${file.originalname.split(".").pop()}`);
   }
 });
 
@@ -40,19 +50,18 @@ restApp.get("/", (req, res) => {
 
 // Endpoint to handle file uploads
 restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
-  
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
-  var fileName = req.files[0]['filename']
+  const fileName = req.files[0]['filename'];
   const fileDetails = req.files.map(file => ({
     originalName: file.originalname,
     savedName: file.filename,
     path: file.path,
     size: file.size
   }));
-  
-  console.log(`filename : ${fileName}`)
+
+  console.log(`filename : ${fileName}`);
   res.status(200).json({
     message: "Files uploaded successfully",
     files: fileDetails
@@ -78,7 +87,7 @@ restApp.get("/photos/latest", (req, res) => {
         name: file,
         time: fs.statSync(path.join(uploadDir, file)).mtime
       }))
-    //   .sort((a, b) => `${b.time} - ${a.time}`);
+      .sort((a, b) => b.time - a.time);
 
     const latestFile = sortedFiles[0].name;
 
