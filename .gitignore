@@ -1,4 +1,5 @@
 /nodered/data
 a.bash
 /nodejs/node_modules
-/nodejs/uploads/*
+/nodejs/uploads/*.jpg
+/nodejs/uploads/*.png

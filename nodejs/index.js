@@ -1,19 +1,20 @@
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const cors = require("cors")
+import express from 'express'
+import multer from 'multer'
+import * as fs from 'fs';
+import * as path from 'path';
+import cors from "cors";
 
-var app = express();
-app.use(cors())
+export var restApp = express();
+restApp.use(cors())
 
 // Set up storage engine for multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Specify the folder where files will be stored
+    // cb(null, "renderer/public/images/"); // Specify the folder where files will be stored
+    cb(null, "./uploads/"); // Specify the folder where files will be stored
   },
   filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`); // Save the file with a timestamp to avoid name collisions
+    cb(null, `output.${file.originalname.split(".").pop()}`); // Save the file with a timestamp to avoid name collisions
   }
 });
 
@@ -33,23 +34,25 @@ const upload = multer({
 });
 
 // Middleware to serve JSON response on root endpoint
-app.get("/", (req, res) => {
+restApp.get("/", (req, res) => {
   res.json({ message: "Hello World" });
 });
 
 // Endpoint to handle file uploads
-app.post("/photos/upload", upload.array("photos", 12), (req, res) => {
+restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
+  
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
-
+  var fileName = req.files[0]['filename']
   const fileDetails = req.files.map(file => ({
     originalName: file.originalname,
     savedName: file.filename,
     path: file.path,
     size: file.size
   }));
-
+  
+  console.log(`filename : ${fileName}`)
   res.status(200).json({
     message: "Files uploaded successfully",
     files: fileDetails
@@ -57,7 +60,7 @@ app.post("/photos/upload", upload.array("photos", 12), (req, res) => {
 });
 
 // Endpoint to get the latest uploaded image
-app.get("/photos/latest", (req, res) => {
+restApp.get("/photos/latest", (req, res) => {
   const uploadDir = path.join(__dirname, "uploads");
 
   fs.readdir(uploadDir, (err, files) => {
@@ -75,7 +78,7 @@ app.get("/photos/latest", (req, res) => {
         name: file,
         time: fs.statSync(path.join(uploadDir, file)).mtime
       }))
-      .sort((a, b) => b.time - a.time);
+    //   .sort((a, b) => `${b.time} - ${a.time}`);
 
     const latestFile = sortedFiles[0].name;
 
@@ -84,6 +87,6 @@ app.get("/photos/latest", (req, res) => {
 });
 
 // Start the server
-app.listen(3001, () => {
+restApp.listen(3001, () => {
   console.log("Server running on http://localhost:3001");
 });

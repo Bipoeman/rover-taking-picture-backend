@@ -1,0 +1,17 @@
+FROM node:20-alpine3.20
+
+# Set the working directory
+WORKDIR /home/node
+
+# Copy the application code into the container
+COPY ./index.js ./index.js
+COPY ./package.json ./package.json
+
+# Install dependencies and create the uploads directory
+RUN npm install && mkdir -p ./uploads
+
+# Expose the application port
+EXPOSE 3001
+
+# Start the application
+CMD [ "node", "index.js" ]
