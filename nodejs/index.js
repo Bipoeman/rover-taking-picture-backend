@@ -12,19 +12,20 @@ dotenv.config()
 var mqttUrl = process.env.MQTT_HOST ?? "localhost"
 
 const mqttClient = mqtt.connect(`mqtt://${mqttUrl}`);
+var isAllowed = true;
 
 mqttClient.on("connect", () => {
   console.log("MQTT Connected")
-  mqttClient.subscribe("presence", (err) => {
-    if (!err) {
-      mqttClient.publish("presence", "Hello mqtt");
-    }
-  });
+  mqttClient.subscribe("/app/enableUpload")
+  mqttClient.publish("/app/enableUpload",JSON.stringify({"enable" : isAllowed}))
 });
 
 mqttClient.on("message", (topic, message) => {
   // message is Buffer
-  console.log(message.toString());
+  // console.log(message.toString());
+  if (topic === "/app/enableUpload"){
+    isAllowed = JSON.parse(message.toString()).enable
+  }
 });
 mqttClient.on("error", () => {
   // message is Buffer
@@ -39,23 +40,17 @@ restApp.use("/image", express.static('uploads'))
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Set up storage engine for multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // cb(null, "renderer/public/images/"); // Specify the folder where files will be stored
-    cb(null, "./uploads/"); // Specify the folder where files will be stored
+    cb(null, "./uploads/");
   },
   filename: function (req, file, cb) {
-    // Original filename approach (commented for reference):
     // cb(null, `output.${file.originalname.split(".").pop()}`);
-
-    // Timestamp-based filename
     const timestamp = Date.now();
     cb(null, `${timestamp}.${file.originalname.split(".").pop()}`);
-  }
+  },
 });
 
-// Initialize multer
 const upload = multer({
   storage: storage,
   fileFilter: function (req, file, cb) {
@@ -70,13 +65,20 @@ const upload = multer({
   }
 });
 
-// Middleware to serve JSON response on root endpoint
+function checkUploadAllowed(req, res, next) {
+  if (!isAllowed) {
+    return res.status(405).json({
+      message: "Uploads are currently disabled. Another user has already submitted the picture.",
+    });
+  }
+  next();
+}
+
 restApp.get("/", (req, res) => {
   res.json({ message: "Hello World" });
 });
 
-// Endpoint to handle file uploads
-restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
+restApp.post("/photos/upload",checkUploadAllowed, upload.array("photos",1), (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
@@ -95,12 +97,19 @@ restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
       "url": `http://localhost:3002/image/${fileName}`,
       "team": req.body.team 
     }
-
-  res.status(200).json({
-    message: "Files uploaded successfully",
-    files: fileDetails
-  });
-  mqttClient.publish("/app/reportState", JSON.stringify(transmit))
+  if (isAllowed){
+    res.status(200).json({
+      message: "Files uploaded successfully",
+      files: fileDetails
+    });
+    mqttClient.publish("/app/reportState", JSON.stringify(transmit))
+    mqttClient.publish("/app/enableUpload",JSON.stringify({"enable" : false}))
+  }
+  else{
+    res.status(405).json({
+      message: "Other already submitted the picture",
+    });
+  }
 });
 
 // Endpoint to get the latest uploaded image
