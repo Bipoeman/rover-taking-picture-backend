@@ -20,7 +20,7 @@ services:
   nodejs:
     build: ./nodejs
     ports:
-      - 3002:3001
+      - 3002:3002
     volumes:
       - ./nodejs/uploads/:/home/node/uploads/
     container_name: nodejs

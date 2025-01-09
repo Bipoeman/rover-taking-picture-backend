@@ -6,8 +6,12 @@ import cors from "cors";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import mqtt from "mqtt";
+import * as dotenv from 'dotenv'
+dotenv.config()
 
-const mqttClient = mqtt.connect("mqtt://mosquitto");
+var mqttUrl = process.env.MQTT_HOST ?? "localhost"
+
+const mqttClient = mqtt.connect(`mqtt://${mqttUrl}`);
 
 mqttClient.on("connect", () => {
   console.log("MQTT Connected")
@@ -30,6 +34,7 @@ mqttClient.on("error", () => {
 
 export var restApp = express();
 restApp.use(cors());
+restApp.use("/image", express.static('uploads'))
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -85,7 +90,11 @@ restApp.post("/photos/upload", upload.array("photos", 1), (req, res) => {
 
   console.log(`filename : ${fileName}`);
   var transmit =
-    { "url": "http://localhost:3002/photos/latest", "team": req.body.team }
+    { 
+      // "url": "http://localhost:3002/photos/latest",
+      "url": `http://localhost:3002/image/${fileName}`,
+      "team": req.body.team 
+    }
 
   res.status(200).json({
     message: "Files uploaded successfully",
@@ -122,6 +131,6 @@ restApp.get("/photos/latest", (req, res) => {
 });
 
 // Start the server
-restApp.listen(3001, () => {
-  console.log("Server running on http://localhost:3001");
+restApp.listen(3002, () => {
+  console.log("Server running on http://localhost:3002");
 });
