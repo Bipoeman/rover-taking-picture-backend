@@ -83,20 +83,21 @@ restApp.post("/photos/upload",checkUploadAllowed, upload.array("photos",1), (req
     return res.status(400).json({ error: "No files uploaded" });
   }
   const fileName = req.files[0]['filename'];
-  const fileDetails = req.files.map(file => ({
-    originalName: file.originalname,
-    savedName: file.filename,
-    path: file.path,
-    size: file.size
-  }));
-
-  console.log(`filename : ${fileName}`);
   var transmit =
     { 
       // "url": "http://localhost:3002/photos/latest",
       "url": `http://localhost:3002/image/${fileName}`,
       "team": req.body.team 
     }
+  const fileDetails = req.files.map(file => ({
+    originalName: file.originalname,
+    savedName: file.filename,
+    path: file.path,
+    size: file.size,
+    imageUrl: transmit.url
+  }));
+
+  console.log(`filename : ${fileName}`);
   if (isAllowed){
     res.status(200).json({
       message: "Files uploaded successfully",
